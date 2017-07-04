@@ -283,13 +283,8 @@ config("default_crt") {
     # exceptions on.
     configs = [ ":dynamic_crt" ]
   } else {
-    if (current_os != "win") {
-      # WindowsRT: use the dynamic CRT.
-      configs = [ ":dynamic_crt" ]
-    } else {
-      # Desktop Windows: static CRT.
-      configs = [ ":static_crt" ]
-    }
+    # ST: Use the dynamic CRT for Desktop Windows and WindowsRT
+    configs = [ ":dynamic_crt" ]
   }
 }
 
