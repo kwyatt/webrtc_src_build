@@ -92,6 +92,9 @@ declare_args() {
   # Default value when unset and use_sanitizer_coverage=true:
   #     edge,indirect-calls,8bit-counters
   sanitizer_coverage_flags = ""
+
+  # ST: Used to force building expat from source
+  force_build_expat = false
 }
 
 # Disable sanitizers for non-default toolchains.
