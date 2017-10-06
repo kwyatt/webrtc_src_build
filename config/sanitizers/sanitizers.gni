@@ -95,6 +95,9 @@ declare_args() {
 
   # ST: Used to force building expat from source
   force_build_expat = false
+
+  # ST: Use the binary binutils from Google Storage instead of the system
+  linux_use_bundled_binutils_override = true
 }
 
 # Disable sanitizers for non-default toolchains.
