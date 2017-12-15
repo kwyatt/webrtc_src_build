@@ -50,7 +50,7 @@ def _ExtractImportantEnvironment(output_of_set):
           # path. Add the path to this python here so that if it's not in the
           # path when ninja is run later, python will still be found.
           setting = os.path.dirname(sys.executable) + os.pathsep + setting
-        env[var.upper()] = setting
+        env[var.upper()] = setting.lower()
         break
   if sys.platform in ('win32', 'cygwin'):
     for required in ('SYSTEMROOT', 'TEMP', 'TMP'):
@@ -127,6 +127,11 @@ def _LoadToolchainEnv(cpu, sdk_dir):
                                        os.environ['GYP_MSVS_OVERRIDE_PATH'],
                                        'VC/vcvarsall.bat'))
     if not os.path.exists(script_path):
+      # vcvarsall.bat for VS 2017 fails if run after running vcvarsall.bat from
+      # VS 2013 or VS 2015. Fix this by clearing the vsinstalldir environment
+      # variable.
+      if 'VSINSTALLDIR' in os.environ:
+        del os.environ['VSINSTALLDIR']
       other_path = os.path.normpath(os.path.join(
                                         os.environ['GYP_MSVS_OVERRIDE_PATH'],
                                         'VC/Auxiliary/Build/vcvarsall.bat'))
@@ -134,7 +139,11 @@ def _LoadToolchainEnv(cpu, sdk_dir):
         raise Exception('%s is missing - make sure VC++ tools are installed.' %
                         script_path)
       script_path = other_path
-    args = [script_path, 'amd64_x86' if cpu == 'x86' else 'amd64']
+    # Chromium requires the 10.0.15063.468 SDK - previous versions don't have
+    # all of the required declarations and 10.0.16299.0 has some
+    # incompatibilities (crbug.com/773476).
+    args = [script_path, 'amd64_x86' if cpu == 'x86' else 'amd64',
+            '10.0.15063.0']
     variables = _LoadEnvFromBat(args)
   return _ExtractImportantEnvironment(variables)
 
@@ -155,12 +164,12 @@ def main():
   if len(sys.argv) != 6:
     print('Usage setup_toolchain.py '
           '<visual studio path> <win sdk path> '
-          '<runtime dirs> <target_cpu> <include prefix>')
+          '<runtime dirs> <target_cpu> <goma_disabled>')
     sys.exit(2)
   win_sdk_path = sys.argv[2]
   runtime_dirs = sys.argv[3]
   target_cpu = sys.argv[4]
-  include_prefix = sys.argv[5]
+  goma_disabled = sys.argv[5]
 
   cpus = ('x86', 'x64')
   assert target_cpu in cpus
@@ -174,6 +183,7 @@ def main():
     # Extract environment variables for subprocesses.
     env = _LoadToolchainEnv(cpu, win_sdk_path)
     env['PATH'] = runtime_dirs + os.pathsep + env['PATH']
+    env['GOMA_DISABLED'] = goma_disabled
 
     if cpu == target_cpu:
       for path in env['PATH'].split(os.pathsep):
@@ -182,8 +192,9 @@ def main():
           break
       # The separator for INCLUDE here must match the one used in
       # _LoadToolchainEnv() above.
-      include = [include_prefix + p for p in env['INCLUDE'].split(';') if p]
-      include = ' '.join(['"' + i.replace('"', r'\"') + '"' for i in include])
+      include = [p.replace('"', r'\"') for p in env['INCLUDE'].split(';') if p]
+      include_I = ' '.join(['"/I' + i + '"' for i in include])
+      include_imsvc = ' '.join(['"-imsvc' + i + '"' for i in include])
 
     env_block = _FormatAsEnvironmentBlock(env)
     with open('environment.' + cpu, 'wb') as f:
@@ -200,8 +211,10 @@ def main():
 
   assert vc_bin_dir
   print 'vc_bin_dir = ' + gn_helpers.ToGNString(vc_bin_dir)
-  assert include
-  print 'include_flags = ' + gn_helpers.ToGNString(include)
+  assert include_I
+  print 'include_flags_I = ' + gn_helpers.ToGNString(include_I)
+  assert include_imsvc
+  print 'include_flags_imsvc = ' + gn_helpers.ToGNString(include_imsvc)
 
 if __name__ == '__main__':
   main()

@@ -23,7 +23,7 @@ _SRC_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__),
 
 def _OnStaleMd5(lint_path, config_path, processed_config_path,
                 manifest_path, result_path, product_dir, sources, jar_path,
-                cache_dir, android_sdk_version, resource_sources,
+                cache_dir, android_sdk_version, srcjars, resource_sources,
                 disable=None, classpath=None, can_fail_build=False,
                 silent=False):
   def _RebasePath(path):
@@ -113,8 +113,7 @@ def _OnStaleMd5(lint_path, config_path, processed_config_path,
       else:
         # This is a zip file with generated resources (e. g. strings from GRD).
         # Extract it to temporary folder.
-        resource_dir = _NewTempSubdir(_RebasePath(resource_source),
-                                      append_digit=False)
+        resource_dir = _NewTempSubdir(resource_source, append_digit=False)
         resource_dirs.append(resource_dir)
         build_utils.ExtractAll(resource_source, path=resource_dir)
 
@@ -151,6 +150,14 @@ def _OnStaleMd5(lint_path, config_path, processed_config_path,
         cmd.extend(['--sources', _RebasePath(src_dir)])
       os.symlink(os.path.abspath(src), PathInDir(src_dir, src))
 
+    if srcjars:
+      srcjar_paths = build_utils.ParseGnList(srcjars)
+      if srcjar_paths:
+        srcjar_dir = _NewTempSubdir('SRC_ROOT')
+        cmd.extend(['--sources', _RebasePath(srcjar_dir)])
+        for srcjar in srcjar_paths:
+          build_utils.ExtractAll(srcjar, path=srcjar_dir)
+
     if disable:
       cmd.extend(['--disable', ','.join(disable)])
 
@@ -166,9 +173,11 @@ def _OnStaleMd5(lint_path, config_path, processed_config_path,
     # Put the manifest in a temporary directory in order to avoid lint detecting
     # sibling res/ and src/ directories (which should be pass explicitly if they
     # are to be included).
-    if manifest_path:
-      os.symlink(os.path.abspath(manifest_path),
-                 os.path.join(project_dir, 'AndroidManifest.xml'))
+    if not manifest_path:
+      manifest_path = os.path.join(
+          _SRC_ROOT, 'build', 'android', 'AndroidManifest.xml')
+    os.symlink(os.path.abspath(manifest_path),
+               os.path.join(project_dir, 'AndroidManifest.xml'))
     cmd.append(project_dir)
 
     if os.path.exists(result_path):
@@ -288,6 +297,8 @@ def main():
                       help='Directories containing java files.')
   parser.add_argument('--stamp',
                       help='Path to touch on success.')
+  parser.add_argument('--srcjars',
+                      help='GN list of included srcjars.')
 
   args = parser.parse_args(build_utils.ExpandFileArgs(sys.argv[1:]))
 
@@ -359,6 +370,7 @@ def main():
                           args.jar_path,
                           args.cache_dir,
                           args.android_sdk_version,
+                          args.srcjars,
                           resource_sources,
                           disable=disable,
                           classpath=classpath,

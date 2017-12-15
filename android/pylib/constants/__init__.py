@@ -37,28 +37,28 @@ PACKAGE_INFO.update({
     'chromecast_shell': chrome.PackageInfo(
         'com.google.android.apps.mediashell',
         'com.google.android.apps.mediashell.MediaShellActivity',
-        '/data/local/tmp/castshell-command-line',
+        'castshell-command-line',
         None),
     'android_webview_shell': chrome.PackageInfo(
         'org.chromium.android_webview.shell',
         'org.chromium.android_webview.shell.AwShellActivity',
-        '/data/local/tmp/android-webview-command-line',
+        'android-webview-command-line',
         None),
     'gtest': chrome.PackageInfo(
         'org.chromium.native_test',
         'org.chromium.native_test.NativeUnitTestActivity',
-        '/data/local/tmp/chrome-native-tests-command-line',
+        'chrome-native-tests-command-line',
         None),
     'components_browsertests': chrome.PackageInfo(
         'org.chromium.components_browsertests_apk',
         ('org.chromium.components_browsertests_apk' +
          '.ComponentsBrowserTestsActivity'),
-        '/data/local/tmp/chrome-native-tests-command-line',
+        'chrome-native-tests-command-line',
         None),
     'content_browsertests': chrome.PackageInfo(
         'org.chromium.content_browsertests_apk',
         'org.chromium.content_browsertests_apk.ContentBrowserTestsActivity',
-        '/data/local/tmp/chrome-native-tests-command-line',
+        'chrome-native-tests-command-line',
         None),
     'chromedriver_webview_shell': chrome.PackageInfo(
         'org.chromium.chromedriver_webview_shell',
@@ -95,17 +95,14 @@ DEVICE_PERF_OUTPUT_DIR = (
 
 SCREENSHOTS_DIR = os.path.join(DIR_SOURCE_ROOT, 'out_screenshots')
 
-ANDROID_SDK_VERSION = version_codes.MARSHMALLOW
-ANDROID_SDK_BUILD_TOOLS_VERSION = '24.0.2'
+ANDROID_SDK_VERSION = version_codes.O_MR1
+ANDROID_SDK_BUILD_TOOLS_VERSION = '27.0.1'
 ANDROID_SDK_ROOT = os.path.join(DIR_SOURCE_ROOT,
                                 'third_party', 'android_tools', 'sdk')
 ANDROID_SDK_TOOLS = os.path.join(ANDROID_SDK_ROOT,
                                  'build-tools', ANDROID_SDK_BUILD_TOOLS_VERSION)
 ANDROID_NDK_ROOT = os.path.join(DIR_SOURCE_ROOT,
                                 'third_party', 'android_tools', 'ndk')
-
-PROGUARD_SCRIPT_PATH = os.path.join(
-    ANDROID_SDK_ROOT, 'tools', 'proguard', 'bin', 'proguard.sh')
 
 PROGUARD_ROOT = os.path.join(DIR_SOURCE_ROOT, 'third_party', 'proguard')
 
@@ -117,6 +114,13 @@ UPSTREAM_FLAKINESS_SERVER = 'test-results.appspot.com'
 
 # TODO(jbudorick): Remove once unused.
 DEVICE_LOCAL_PROPERTIES_PATH = '/data/local.prop'
+
+# Configure ubsan to print stack traces in the format understood by "stack" so
+# that they will be symbolized, and disable signal handlers because they
+# interfere with the breakpad and sandbox tests.
+UBSAN_OPTIONS = (
+    'print_stacktrace=1 stack_trace_format=\'#%n pc %o %m\' '
+    'handle_segv=0 handle_sigbus=0 handle_sigfpe=0')
 
 # TODO(jbudorick): Rework this into testing/buildbot/
 PYTHON_UNIT_TEST_SUITES = {

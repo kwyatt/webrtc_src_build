@@ -27,11 +27,6 @@ config("runtime_library") {
   }
 }
 
-config("fontconfig") {
-  visibility = [ "//build/linux:fontconfig" ]
-  libs = [ "fontconfig" ]
-}
-
 config("x11") {
   libs = [
     "X11",
@@ -91,6 +86,10 @@ if (use_glib) {
       "gmodule-2.0",
       "gobject-2.0",
       "gthread-2.0",
+    ]
+    defines = [
+      "GLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_32",
+      "GLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_26",
     ]
   }
 }
